@@ -40,6 +40,13 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len(reader.pages) == 2
     assert_metadata_clean(clean)
 
+    try:
+        sanitize_pdf(src, src)
+    except ValueError as exc:
+        assert "overwrite" in str(exc).lower()
+    else:
+        raise AssertionError("Sanitize must never overwrite its source PDF")
+
     protected = root / "protected.pdf"
     sanitize_pdf(src, protected, password="test-password")
     protected_reader = PdfReader(str(protected))
@@ -63,5 +70,21 @@ with tempfile.TemporaryDirectory() as tmp:
     merge_pdfs([first, second], merged)
     assert len(PdfReader(str(merged)).pages) == 2
     assert_metadata_clean(merged)
+
+    try:
+        merge_pdfs([first, second], first)
+    except ValueError as exc:
+        assert "overwrite" in str(exc).lower()
+    else:
+        raise AssertionError("Merge must never overwrite an input PDF")
+
+    corrupt = root / "corrupt.pdf"
+    corrupt.write_bytes(b"%PDF-1.7\ntruncated")
+    try:
+        sanitize_pdf(corrupt, root / "corrupt-out.pdf")
+    except Exception:
+        pass
+    else:
+        raise AssertionError("Corrupt PDF must be rejected")
 
 print("PDF Privacy Toolkit smoke test: OK")
