@@ -6,6 +6,15 @@ from tkinter import BOTH, END, LEFT, Button, Entry, Frame, Label, Listbox, Strin
 from pypdf import PdfReader, PdfWriter
 
 
+def ensure_distinct_path(src: Path, out: Path) -> None:
+    try:
+        same = src.resolve() == out.resolve()
+    except OSError:
+        same = src.absolute() == out.absolute()
+    if same:
+        raise ValueError("Refusing to overwrite the original PDF.")
+
+
 def parse_pages(spec: str, total: int) -> list[int]:
     if not spec.strip():
         return list(range(total))
@@ -54,6 +63,7 @@ def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: b
 
 
 def sanitize_pdf(src: Path, out: Path, page_spec: str = "", password: str = "") -> None:
+    ensure_distinct_path(src, out)
     reader = PdfReader(str(src), strict=True)
     if reader.is_encrypted:
         raise ValueError("Encrypted PDFs are not modified by this MVP. Decrypt with authorization before processing.")
@@ -72,6 +82,8 @@ def split_pdf(src: Path, output_dir: Path) -> int:
 
 
 def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
+    for src in inputs:
+        ensure_distinct_path(src, out)
     writer = PdfWriter()
     for src in inputs:
         reader = PdfReader(str(src), strict=True)
