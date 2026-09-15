@@ -40,6 +40,18 @@ with tempfile.TemporaryDirectory() as tmp:
     assert len(reader.pages) == 2
     assert_metadata_clean(clean)
 
+    protected = root / "protected.pdf"
+    sanitize_pdf(src, protected, password="test-password")
+    protected_reader = PdfReader(str(protected))
+    assert protected_reader.is_encrypted
+    encrypt_dict = protected_reader.trailer["/Encrypt"].get_object()
+    assert int(encrypt_dict["/V"]) == 5
+    assert int(encrypt_dict["/R"]) == 5
+    assert protected_reader.decrypt("test-password") != 0
+    assert len(protected_reader.pages) == 2
+    assert protected_reader.metadata is None
+    assert protected_reader.xmp_metadata is None
+
     split_dir = root / "split"
     assert split_pdf(src, split_dir) == 2
     first = split_dir / "sample_page_001.pdf"
