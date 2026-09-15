@@ -7,7 +7,7 @@ if (Test-Path $Venv) { Remove-Item -Recurse -Force $Venv }
 py -3 -m venv $Venv
 $Python = Join-Path $Venv "Scripts\python.exe"
 & $Python -m pip install --upgrade pip
-& $Python -m pip install pyinstaller pypdf
+& $Python -m pip install pyinstaller "pypdf>=6.0,<7"
 & $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name "PDFPrivacyToolkit" --collect-all pypdf windows_app.py
 Write-Host "Built: $Root\dist\PDFPrivacyToolkit.exe"
-Write-Host "Before sale: fixture tests, malformed/encrypted PDF tests, malware scan, Authenticode signing, SHA256."
+Write-Host "Before sale: fixture tests, malformed/encrypted PDF tests, metadata/XMP verification, malware scan, Authenticode signing, SHA256."
