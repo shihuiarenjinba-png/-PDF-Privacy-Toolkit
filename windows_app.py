@@ -31,12 +31,19 @@ def parse_pages(spec: str, total: int) -> list[int]:
     return dedup
 
 
+def strip_writer_metadata(writer: PdfWriter) -> None:
+    # pypdf keeps document-info metadata and XMP metadata separately.
+    writer.metadata = None
+    writer.xmp_metadata = None
+    writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
+
+
 def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: bool = True, password: str = "") -> None:
     writer = PdfWriter()
     for idx in pages:
         writer.add_page(reader.pages[idx])
     if remove_metadata:
-        writer.add_metadata({})
+        strip_writer_metadata(writer)
     if password:
         writer.encrypt(password)
     with out.open("wb") as fh:
@@ -44,13 +51,17 @@ def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: b
 
 
 def sanitize_pdf(src: Path, out: Path, page_spec: str = "", password: str = "") -> None:
-    reader = PdfReader(str(src))
+    reader = PdfReader(str(src), strict=True)
+    if reader.is_encrypted:
+        raise ValueError("Encrypted PDFs are not modified by this MVP. Decrypt with authorization before processing.")
     pages = parse_pages(page_spec, len(reader.pages))
     write_pdf(reader, pages, out, remove_metadata=True, password=password)
 
 
 def split_pdf(src: Path, output_dir: Path) -> int:
-    reader = PdfReader(str(src))
+    reader = PdfReader(str(src), strict=True)
+    if reader.is_encrypted:
+        raise ValueError("Encrypted PDFs are not modified by this MVP.")
     output_dir.mkdir(parents=True, exist_ok=True)
     for i in range(len(reader.pages)):
         write_pdf(reader, [i], output_dir / f"{src.stem}_page_{i+1:03d}.pdf", remove_metadata=True)
@@ -60,10 +71,12 @@ def split_pdf(src: Path, output_dir: Path) -> int:
 def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
     writer = PdfWriter()
     for src in inputs:
-        reader = PdfReader(str(src))
+        reader = PdfReader(str(src), strict=True)
+        if reader.is_encrypted:
+            raise ValueError(f"Encrypted PDF cannot be merged by this MVP: {src.name}")
         for page in reader.pages:
             writer.add_page(page)
-    writer.add_metadata({})
+    strip_writer_metadata(writer)
     if password:
         writer.encrypt(password)
     with out.open("wb") as fh:
@@ -82,7 +95,7 @@ class App:
         head = Frame(root, padx=12, pady=12)
         head.pack(fill="x")
         Label(head, text="PDF Privacy Toolkit", font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        Label(head, text="Merge, split, reorder/delete pages, remove metadata, and optionally password-protect PDFs locally.").pack(anchor="w")
+        Label(head, text="Merge, split, reorder/delete pages, remove document/XMP metadata, and optionally password-protect PDFs locally.").pack(anchor="w")
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
@@ -109,9 +122,11 @@ class App:
         self.listbox.delete(0, END)
         for p in self.files:
             try:
-                r = PdfReader(str(p))
-                meta = "metadata" if r.metadata else "no metadata"
-                self.listbox.insert(END, f"{p.name} | {len(r.pages)} pages | {meta}")
+                r = PdfReader(str(p), strict=True)
+                encrypted = "encrypted" if r.is_encrypted else "not encrypted"
+                info_meta = bool(r.metadata) if not r.is_encrypted else False
+                xmp_meta = bool(r.xmp_metadata) if not r.is_encrypted else False
+                self.listbox.insert(END, f"{p.name} | {len(r.pages) if not r.is_encrypted else '?'} pages | {encrypted} | info={info_meta} xmp={xmp_meta}")
             except Exception as exc:
                 self.listbox.insert(END, f"ERROR {p.name}: {exc}")
 
