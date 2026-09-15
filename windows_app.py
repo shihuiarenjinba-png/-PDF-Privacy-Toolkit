@@ -32,10 +32,14 @@ def parse_pages(spec: str, total: int) -> list[int]:
 
 
 def strip_writer_metadata(writer: PdfWriter) -> None:
-    # pypdf keeps document-info metadata and XMP metadata separately.
     writer.metadata = None
     writer.xmp_metadata = None
     writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
+
+
+def protect_writer(writer: PdfWriter, password: str) -> None:
+    if password:
+        writer.encrypt(password, algorithm="AES-256-R5")
 
 
 def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: bool = True, password: str = "") -> None:
@@ -44,8 +48,7 @@ def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: b
         writer.add_page(reader.pages[idx])
     if remove_metadata:
         strip_writer_metadata(writer)
-    if password:
-        writer.encrypt(password)
+    protect_writer(writer, password)
     with out.open("wb") as fh:
         writer.write(fh)
 
@@ -77,8 +80,7 @@ def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
         for page in reader.pages:
             writer.add_page(page)
     strip_writer_metadata(writer)
-    if password:
-        writer.encrypt(password)
+    protect_writer(writer, password)
     with out.open("wb") as fh:
         writer.write(fh)
 
@@ -95,7 +97,7 @@ class App:
         head = Frame(root, padx=12, pady=12)
         head.pack(fill="x")
         Label(head, text="PDF Privacy Toolkit", font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        Label(head, text="Merge, split, reorder/delete pages, remove document/XMP metadata, and optionally password-protect PDFs locally.").pack(anchor="w")
+        Label(head, text="Merge, split, reorder/delete pages, remove document/XMP metadata, and optionally AES-256-R5 password-protect PDFs locally.").pack(anchor="w")
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
@@ -108,7 +110,7 @@ class App:
         opts.pack(fill="x")
         Label(opts, text="Pages to keep/order for Sanitize (example: 1,3-5,2; blank = all):").pack(anchor="w")
         Entry(opts, textvariable=self.pages).pack(fill="x", pady=(2, 8))
-        Label(opts, text="Optional output password:").pack(anchor="w")
+        Label(opts, text="Optional output password (AES-256-R5):").pack(anchor="w")
         Entry(opts, textvariable=self.password, show="*").pack(fill="x")
 
         self.listbox = Listbox(root, font=("Consolas", 10))
