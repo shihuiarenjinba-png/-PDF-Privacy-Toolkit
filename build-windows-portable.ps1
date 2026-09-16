@@ -8,6 +8,6 @@ py -3 -m venv $Venv
 $Python = Join-Path $Venv "Scripts\python.exe"
 & $Python -m pip install --upgrade pip
 & $Python -m pip install pyinstaller "pypdf[crypto]>=6.0,<7"
-& $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name "PDFPrivacyToolkit" --collect-all pypdf --collect-all cryptography windows_app.py
+& $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name "PDFPrivacyToolkit" --collect-all pypdf --collect-all cryptography desktop_entry.py
 Write-Host "Built: $Root\dist\PDFPrivacyToolkit.exe"
-Write-Host "Before sale: fixture tests, malformed/encrypted PDF tests, metadata/XMP verification, AES-256-R5 password test, malware scan, Authenticode signing, SHA256."
+Write-Host "Before sale: run SALES_RELEASE_CHECKLIST.md, fixture tests, malformed/encrypted PDF tests, metadata/XMP verification, AES-256-R5 password test, JA/EN UI smoke, malware scan, Authenticode signing, SHA256."
