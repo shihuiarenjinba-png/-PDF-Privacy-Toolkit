@@ -1,2 +1,54 @@
-# -PDF-Privacy-Toolkit
-    今のPDF Converterを発展させ、結合・分割・画像→PDFだけでなく、PDFメタデータ除去、ページ削除、並べ替え、ローカル墨消し、画像化によるflatten、パスワード保護などを追加します。「機密PDFをWebの無料PDFサイトへアップロードしなくて済む」が非常に分かりやすい売りになります。
+# PDF Privacy Toolkit
+
+機密PDFをWebサービスへアップロードせず、**ローカルで本当に削除できる情報と、単に見えなくするだけの処理を区別して扱うPDF Sanitizer**として設計します。
+
+## 最重要方針
+
+黒い四角を上から重ねただけの「見た目だけ墨消し」は、下の文字やobjectが残るため安全化とは扱いません。
+
+販売版で「redacted」と呼ぶのは、以下のいずれかを満たした出力だけです。
+
+1. PDF redaction機能で対象領域のunderlying text / vector / image contentを削除し、新PDFへ保存する。
+2. Strong Flatten Modeで、redaction後ページを画像へrenderし、**新規PDFをゼロから再構築**する。
+
+## 想定処理
+
+- metadata / XMP / document info削除
+- attachments / embedded files検査・削除
+- annotations / comments検査・削除
+- form fields / AcroForm検査・flattenまたは削除
+- JavaScript / actions / links検査
+- page削除 / 並べ替え
+- true redaction
+- Strong Flatten Mode
+- password保護は「情報削除」とは別機能として扱う
+
+## Redaction workflow
+
+1. ユーザーが検索語・領域・ページを指定
+2. text layerがあるPDFでは文字座標からcandidate boxを作る
+3. candidateを人がPreview確認
+4. redaction annotationを適用しunderlying objectを削除
+5. 新規ファイルとして保存
+6. 出力PDFから再度text extractionし、指定禁止語が残っていないか検査
+7. metadata / attachment / annotation / form / actionを再検査
+8. output SHA256とaudit reportを保存
+
+OCRはスキャンPDFで候補位置を出す補助に限定し、**OCRが何も見つけなかったことを安全証明には使いません。** スキャンPDFではmanual reviewを必須にします。
+
+## Strong Flatten Mode
+
+最高安全寄りのモードでは、redaction後の各ページを高解像度画像へrenderし、brand-new PDFへ再構成します。これにより元PDFのhidden text、vector object、form、annotation、attachment、link等を引き継がない設計にします。
+
+ただし、画像そのものに機密文字が残っていれば安全ではありません。したがってflatten前のredaction確認と、flatten後の再検査を両方行います。
+
+## 販売上の約束
+
+- 「黒塗りしたので安全」とは言わない
+- 「OCR 100%」とは言わない
+- redaction対象とmetadata sanitizationを別項目でreportする
+- 未検査要素があればPASSではなくREVIEW/BLOCKにする
+- 元PDFを上書きしない
+- 出力hashと処理履歴を残す
+
+法的証拠能力や完全な機密除去を保証する製品とはせず、**どの要素を削除し、何を再検査したか追跡できるローカルPDF Sanitizer**を目標にします。
