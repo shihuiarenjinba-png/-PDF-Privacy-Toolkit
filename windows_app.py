@@ -129,7 +129,7 @@ class App:
         self.listbox.pack(fill=BOTH, expand=True, padx=12, pady=12)
 
     def add_files(self):
-        for p in filedialog.askopenfilenames(title="Select PDFs", filetypes=[("PDF", "*.pdf")]):
+        for p in filedialog.askopenfilenames(parent=self.root, title="Select PDFs", filetypes=[("PDF", "*.pdf")]):
             path = Path(p)
             if path not in self.files:
                 self.files.append(path)
@@ -147,7 +147,7 @@ class App:
     def sanitize_first(self):
         if not self.files:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
-        out = filedialog.asksaveasfilename(defaultextension=".pdf", initialfile=f"{self.files[0].stem}_clean.pdf", filetypes=[("PDF", "*.pdf")])
+        out = filedialog.asksaveasfilename(parent=self.root, defaultextension=".pdf", initialfile=f"{self.files[0].stem}_clean.pdf", filetypes=[("PDF", "*.pdf")])
         if not out:
             return
         try:
@@ -159,7 +159,7 @@ class App:
     def split_first(self):
         if not self.files:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
-        folder = filedialog.askdirectory(title="Choose split output folder")
+        folder = filedialog.askdirectory(parent=self.root, title="Choose split output folder")
         if not folder:
             return
         try:
@@ -171,7 +171,7 @@ class App:
     def merge_all(self):
         if len(self.files) < 2:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add at least two PDFs to merge.")
-        out = filedialog.asksaveasfilename(defaultextension=".pdf", initialfile="merged_clean.pdf", filetypes=[("PDF", "*.pdf")])
+        out = filedialog.asksaveasfilename(parent=self.root, defaultextension=".pdf", initialfile="merged_clean.pdf", filetypes=[("PDF", "*.pdf")])
         if not out:
             return
         try:
