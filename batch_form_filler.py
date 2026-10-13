@@ -78,12 +78,28 @@ def records(path: Path) -> tuple[list[str], list[dict[str, str]]]:
 
 
 def _form_fields(reader: PdfReader) -> list[str]:
+    if reader.is_encrypted:
+        raise ValueError("Encrypted PDF is not supported")
     root = reader.trailer["/Root"]
+    # This form-filler is not a PDF sanitizer. Reject obvious active content
+    # instead of passing it through into each generated document.
+    if root.get("/OpenAction") or root.get("/AA"):
+        raise ValueError("PDF contains document-level actions")
+    names = root.get("/Names")
+    if names:
+        name_dict = names.get_object()
+        if name_dict.get("/JavaScript") or name_dict.get("/EmbeddedFiles"):
+            raise ValueError("PDF contains scripts or embedded files")
+    for page in reader.pages:
+        if page.get("/AA"):
+            raise ValueError("PDF contains page-level actions")
+        for ref in page.get("/Annots", []):
+            annotation = ref.get_object()
+            if annotation.get("/A") or annotation.get("/AA"):
+                raise ValueError("PDF contains annotation actions")
     acro = root.get("/AcroForm")
     if acro and acro.get_object().get("/XFA"):
         raise ValueError("XFA forms are not supported")
-    if reader.is_encrypted:
-        raise ValueError("Encrypted PDF is not supported")
     fields = reader.get_fields() or {}
     if not fields:
         raise ValueError("No AcroForm fields; this tool does not stamp non-fillable PDFs")
