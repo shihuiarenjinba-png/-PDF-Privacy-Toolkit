@@ -1,13 +1,13 @@
 # Validation packaging only. NOT signed / NOT a sales release.
-# Run in PowerShell from any location: powershell -ExecutionPolicy Bypass -File .\\build-windows-validation.ps1
+# Run in PowerShell from any location: powershell -ExecutionPolicy Bypass -File .\build-windows-validation.ps1
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 $root = $PSScriptRoot
 Set-Location $root
 $stamp = [Guid]::NewGuid().ToString("N")
 $venv = Join-Path $env:TEMP ("PDFBatchForms-validation-" + $stamp)
-$python = Join-Path $venv "Scripts\\python.exe"
-$out = Join-Path $root ("dist-validation\\PDFBatchForms-" + $stamp)
+$python = Join-Path $venv "Scripts\python.exe"
+$out = Join-Path $root ("dist-validation\PDFBatchForms-" + $stamp)
 $work = Join-Path $venv "pyinstaller-work"
 $spec = Join-Path $venv "pyinstaller-spec"
 
@@ -29,7 +29,7 @@ try {
     Invoke-Python @("-m","PyInstaller","--noconfirm","--clean","--onedir","--windowed",
         "--name","PDFBatchForms","--distpath",$out,"--workpath",$work,"--specpath",$spec,
         "batch_form_gui.py")
-    $exe = Join-Path $out "PDFBatchForms\\PDFBatchForms.exe"
+    $exe = Join-Path $out "PDFBatchForms\PDFBatchForms.exe"
     if (-not (Test-Path -LiteralPath $exe)) { throw "Expected EXE missing: $exe" }
     $digest = Get-FileHash -Algorithm SHA256 -LiteralPath $exe
     $result = [ordered]@{
