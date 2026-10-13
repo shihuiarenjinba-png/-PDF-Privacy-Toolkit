@@ -11,6 +11,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from pypdf import PdfReader
 from batch_form_filler import batch_fill, _form_fields, records
+from ui_preferences import load_preferences, save_preferences
 
 
 class FormBatchGUI(tk.Tk):
@@ -24,6 +25,12 @@ class FormBatchGUI(tk.Tk):
         self.mapping = tk.StringVar()
         self.output = tk.StringVar(value=str(Path.home() / "Documents"))
         self.status = tk.StringVar(value="入力可能なテキストフォームを持つPDFテンプレートとCSV/XLSXを選択してください。")
+        try:
+            preferences = load_preferences("PDFBatchForms", ("output",))
+            for key, value in preferences.items():
+                getattr(self, key).set(value)
+        except (OSError, ValueError) as exc:
+            self.status.set("保存設定を読み込めませんでした: " + str(exc))
         body = ttk.Frame(self, padding=18)
         body.pack(fill="both", expand=True)
         body.columnconfigure(1, weight=1)
@@ -44,6 +51,15 @@ class FormBatchGUI(tk.Tk):
             row=8, column=0, columnspan=3, sticky="w", pady=10)
         ttk.Label(body, textvariable=self.status, wraplength=790).grid(
             row=9, column=0, columnspan=3, sticky="w")
+        ttk.Button(body, text="設定を保存", command=self.save_user_preferences).grid(row=10, column=0, columnspan=3, sticky="w", pady=5)
+
+    def save_user_preferences(self) -> None:
+        try:
+            save_preferences("PDFBatchForms", {"output": self.output.get()}, ("output",))
+            self.status.set("レポート出力先の設定を保存しました。")
+        except (OSError, ValueError) as exc:
+            self.status.set(f"設定保存失敗: {exc}")
+            messagebox.showerror("設定保存失敗", str(exc))
 
     def _pick_row(self, parent, row, label, variable, types=None, directory=False) -> None:
         ttk.Label(parent, text=label).grid(row=row, column=0, sticky="w", pady=5)
@@ -117,5 +133,8 @@ if __name__ == "__main__":
     elif "--e2e-test" in sys.argv:
         from gui_e2e_harness import run
         run(FormBatchGUI)
+    elif "--preferences-ci" in sys.argv:
+        from preferences_ci import run
+        run(FormBatchGUI, "PDFBatchForms", {"output":"C:\\QA\\日本語帳票\\保存先"})
     else:
         FormBatchGUI().mainloop()
