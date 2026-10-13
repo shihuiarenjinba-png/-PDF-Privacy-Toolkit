@@ -75,3 +75,12 @@ OCRはスキャンPDFで候補位置を出す補助に限定し、**OCRが何も
 - 依存インストール: `python -m pip install -r requirements-batch-form.txt`
 - 匿名サンプル: `examples/form_columns.csv` / `examples/form_mapping.json`（テンプレートPDFは自分のフォームをご用意ください）
 - 実際の出力は必ずPDFビューアで確認してから配布してください。フォントの視認性は自動保証しません。
+
+
+### Windows検証ビルド（未署名）
+
+`powershell -ExecutionPolicy Bypass -File .\\build-windows-validation.ps1`
+
+テストを先に実施し、通過した場合のみ `dist-validation/` 配下にPyInstaller EXEとSHA-256 manifestを生成します。
+GitHub Actions `.github/workflows/windows-validation.yml` は **workflow_dispatch（手動）** のみ。
+これは販売パッケージではなく、署名・Defender・Windows実機GUIの最終確認は含まれていません。
