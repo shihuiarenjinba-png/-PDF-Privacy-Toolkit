@@ -69,3 +69,9 @@ OCRはスキャンPDFで候補位置を出す補助に限定し、**OCRが何も
 - **重要**: PDFの画面表示と印刷の確認は別途必要。特に日本語フォント埋込みは未対応のため、非ASCII文字を含む出力はREVIEW扱い。
 - **重要**: 一括フォーム入力はPDFの機密削除や墨消し機能ではありません。テンプレートの既存情報やmetadataを引き継ぐ可能性があります。
 - 状態: Windows実機・複数ビューワーの視覚検証・EXE化が未完了の開発MVP。販売承認済みと扱いません。
+
+### Windows画面とサンプル
+- GUI: `python batch_form_gui.py`（フィールド名と入力列のプレビュー、50件以上の確認）
+- 依存インストール: `python -m pip install -r requirements-batch-form.txt`
+- 匿名サンプル: `examples/form_columns.csv` / `examples/form_mapping.json`（テンプレートPDFは自分のフォームをご用意ください）
+- 実際の出力は必ずPDFビューアで確認してから配布してください。フォントの視認性は自動保証しません。
