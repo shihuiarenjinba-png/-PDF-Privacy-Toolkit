@@ -25,7 +25,7 @@ try {
     Invoke-Python @("-m","pip","install","-r","requirements-batch-form.txt")
     Invoke-Python @("-m","pip","install","reportlab>=4,<5")
     Invoke-Python @("-m","pip","install","pyinstaller>=6.10,<7")
-    Invoke-Python @("-m","unittest","discover","-s","tests","-p","test_batch_form_filler.py","-v")
+    Invoke-Python @("-m","unittest","discover","-s","tests","-p","test_*.py","-v")
     Invoke-Python @("-m","PyInstaller","--noconfirm","--clean","--onedir","--windowed",
         "--name","PDFBatchForms","--distpath",$out,"--workpath",$work,"--specpath",$spec,
         "batch_form_gui.py")
