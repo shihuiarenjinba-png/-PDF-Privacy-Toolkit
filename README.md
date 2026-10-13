@@ -52,3 +52,20 @@ OCRはスキャンPDFで候補位置を出す補助に限定し、**OCRが何も
 - 出力hashと処理履歴を残す
 
 法的証拠能力や完全な機密除去を保証する製品とはせず、**どの要素を削除し、何を再検査したか追跡できるローカルPDF Sanitizer**を目標にします。
+
+
+## 拡張MVP: 定型PDF一括入力（2026-10）
+
+- 目的: 既存の入力欄（AcroForm）を持つPDFに対し、CSV/XLSXの各行から1人1PDFを生成
+- GUI: `python batch_form_gui.py`
+- CLI: `python batch_form_filler.py template.pdf data.csv output_folder --mapping mapping.json`
+- 列名対応JSON例: `{"name":"person_name","amount":"total_yen"}`
+- 追加依存: `python -m pip install "pypdf>=5.9,<7" "openpyxl>=3.1,<4"`
+- 検証用依存（テストのみ）: `python -m pip install reportlab`
+- テスト: `python -m unittest discover -s tests -p "test_batch_form_filler.py"`
+- 生成物: `filled_0001.pdf` 等、`batch_report.json`（テンプレートと元データのハッシュを記録）
+- 入力とテンプレートは変更しない。出力先には毎回新しいフォルダを作成
+- 制限: **テキストAcroFormのみ**。XFA/電子署名/チェックボックス/スキャンPDFへの文字貼り付け/flatten未対応
+- **重要**: PDFの画面表示と印刷の確認は別途必要。特に日本語フォント埋込みは未対応のため、非ASCII文字を含む出力はREVIEW扱い。
+- **重要**: 一括フォーム入力はPDFの機密削除や墨消し機能ではありません。テンプレートの既存情報やmetadataを引き継ぐ可能性があります。
+- 状態: Windows実機・複数ビューワーの視覚検証・EXE化が未完了の開発MVP。販売承認済みと扱いません。
