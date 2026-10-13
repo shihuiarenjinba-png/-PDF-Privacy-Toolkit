@@ -84,3 +84,8 @@ OCRはスキャンPDFで候補位置を出す補助に限定し、**OCRが何も
 テストを先に実施し、通過した場合のみ `dist-validation/` 配下にPyInstaller EXEとSHA-256 manifestを生成します。
 GitHub Actions `.github/workflows/windows-validation.yml` は **workflow_dispatch（手動）** のみ。
 これは販売パッケージではなく、署名・Defender・Windows実機GUIの最終確認は含まれていません。
+
+
+## Windows QA evidence and manual acceptance (2026-10-13)
+
+Automated Windows packaging + GUI output tests and distribution-hash evidence are implemented. See [Windows QA Runbook](docs/WINDOWS_QA_RUNBOOK.md). This is **not a sales release**; manual acceptance, Defender review and signed distribution are pending.
