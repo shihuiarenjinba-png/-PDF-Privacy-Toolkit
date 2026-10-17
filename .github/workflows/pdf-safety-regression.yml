@@ -1,0 +1,31 @@
+name: PDF safety and UI regression
+on:
+  push:
+    branches: [improve/simple-pdf-safety-20261018]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install locked requirements
+        shell: pwsh
+        run: python -m pip install -r requirements-windows.lock.txt
+      - name: Compile
+        run: python -m compileall -q windows_app.py i18n.py tests
+      - name: Original PDF regression
+        run: python smoke_test.py
+      - name: PDF safety regression
+        run: python -m unittest discover -s tests -p "test_*.py" -v
+      - name: Language and dialog regression
+        shell: pwsh
+        run: |
+          python bilingual_smoke_test.py
+          python language_standard_smoke_test.py
+          python dialog_parent_smoke_test.py
