@@ -16,31 +16,38 @@ def ensure_distinct_path(src: Path, out: Path) -> None:
 
 
 def parse_pages(spec: str, total: int) -> list[int]:
+    """Strictly parse unique, one-based page selections without empty outputs."""
+    import re
+
+    if total < 1:
+        raise ValueError("Cannot process a PDF with no pages.")
     if not spec.strip():
         return list(range(total))
     result: list[int] = []
+    seen: set[int] = set()
+    if len(spec) > 20000:
+        raise ValueError("Page selection is too long.")
     for token in spec.split(","):
         token = token.strip()
-        if not token:
-            continue
-        if "-" in token:
-            a, b = token.split("-", 1)
-            start, end = int(a), int(b)
-            if start > end:
-                start, end = end, start
-            result.extend(range(start - 1, end))
-        else:
-            result.append(int(token) - 1)
-    dedup = []
-    for idx in result:
-        if idx < 0 or idx >= total:
-            raise ValueError(f"Page out of range: {idx + 1}")
-        if idx not in dedup:
-            dedup.append(idx)
-    return dedup
+        if not re.fullmatch(r"[0-9]+(?:\s*-\s*[0-9]+)?", token):
+            raise ValueError(f"Invalid page selection: {token[:60]!r}")
+        bounds = [int(value.strip()) for value in token.split("-")]
+        a, b = bounds if len(bounds) == 2 else (bounds[0], bounds[0])
+        if a < 1 or b < 1 or a > total or b > total:
+            raise ValueError(f"Page out of range: {token}")
+        if a > b:
+            a, b = b, a
+        for idx in range(a - 1, b):
+            if idx not in seen:
+                seen.add(idx)
+                result.append(idx)
+    if not result:
+        raise ValueError("No pages selected.")
+    return result
 
 
 def strip_writer_metadata(writer: PdfWriter) -> None:
+    """Remove document-info/XMP only. This is NOT PDF content redaction."""
     writer.metadata = None
     writer.xmp_metadata = None
     writer.compress_identical_objects(remove_duplicates=True, remove_unreferenced=True)
@@ -51,22 +58,56 @@ def protect_writer(writer: PdfWriter, password: str) -> None:
         writer.encrypt(password, algorithm="AES-256-R5")
 
 
-def write_pdf(reader: PdfReader, pages: list[int], out: Path, remove_metadata: bool = True, password: str = "") -> None:
+def verify_written_pdf(out: Path, expected_pages: int, password: str = "", remove_metadata: bool = True) -> None:
+    """Check the narrow properties we actually promise after writing."""
+    checked = PdfReader(str(out), strict=True)
+    if bool(password) != checked.is_encrypted:
+        raise ValueError("Output encryption did not match the selected setting.")
+    if password and not checked.decrypt(password):
+        raise ValueError("Output password verification failed.")
+    if len(checked.pages) != expected_pages:
+        raise ValueError("Output page count verification failed.")
+    if remove_metadata and (checked.metadata or checked.xmp_metadata):
+        raise ValueError("Output document-info or XMP metadata remains.")
+
+
+def _publish_writer(writer: PdfWriter, out: Path, expected_pages: int, password: str = "") -> None:
+    # Exclusive creation: neither a source nor any existing export may be replaced.
+    created = False
+    try:
+        with out.open("xb") as fh:
+            created = True
+            writer.write(fh)
+        if out.stat().st_size <= 0:
+            raise ValueError("Generated PDF is empty.")
+        verify_written_pdf(out, expected_pages, password)
+    except BaseException:
+        if created:
+            out.unlink(missing_ok=True)
+        raise
+
+
+def write_pdf(reader: PdfReader, pages: list[int], out: Path,
+              remove_metadata: bool = True, password: str = "") -> None:
+    if not pages:
+        raise ValueError("Cannot export zero pages.")
+    if out.exists() or out.is_symlink():
+        raise FileExistsError("Output PDF already exists. Choose a new filename.")
     writer = PdfWriter()
     for idx in pages:
         writer.add_page(reader.pages[idx])
     if remove_metadata:
         strip_writer_metadata(writer)
     protect_writer(writer, password)
-    with out.open("wb") as fh:
-        writer.write(fh)
+    _publish_writer(writer, out, len(pages), password)
 
 
 def sanitize_pdf(src: Path, out: Path, page_spec: str = "", password: str = "") -> None:
+    """Keep/reorder pages and remove *metadata*, not page text or secrets."""
     ensure_distinct_path(src, out)
     reader = PdfReader(str(src), strict=True)
     if reader.is_encrypted:
-        raise ValueError("Encrypted PDFs are not modified by this MVP. Decrypt with authorization before processing.")
+        raise ValueError("Encrypted PDFs are not modified. Supply an authorized decrypted copy.")
     pages = parse_pages(page_spec, len(reader.pages))
     write_pdf(reader, pages, out, remove_metadata=True, password=password)
 
@@ -74,27 +115,51 @@ def sanitize_pdf(src: Path, out: Path, page_spec: str = "", password: str = "") 
 def split_pdf(src: Path, output_dir: Path) -> int:
     reader = PdfReader(str(src), strict=True)
     if reader.is_encrypted:
-        raise ValueError("Encrypted PDFs are not modified by this MVP.")
+        raise ValueError("Encrypted PDFs are not modified.")
+    count = len(reader.pages)
+    if count < 1:
+        raise ValueError("Input PDF has no pages.")
+    if output_dir.is_symlink():
+        raise ValueError("Output directory cannot be a symlink.")
     output_dir.mkdir(parents=True, exist_ok=True)
-    for i in range(len(reader.pages)):
-        write_pdf(reader, [i], output_dir / f"{src.stem}_page_{i+1:03d}.pdf", remove_metadata=True)
-    return len(reader.pages)
+    targets = [output_dir / f"{src.stem}_page_{i+1:03d}.pdf" for i in range(count)]
+    for target in targets:
+        ensure_distinct_path(src, target)
+        if target.exists() or target.is_symlink():
+            raise FileExistsError(f"Split would replace an existing file: {target.name}")
+    created: list[Path] = []
+    try:
+        for idx, target in enumerate(targets):
+            write_pdf(reader, [idx], target, remove_metadata=True)
+            created.append(target)
+    except BaseException:
+        for target in created:
+            target.unlink(missing_ok=True)
+        raise
+    return count
 
 
 def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
+    if len(inputs) < 2:
+        raise ValueError("Select at least two PDFs to merge.")
     for src in inputs:
         ensure_distinct_path(src, out)
+    if out.exists() or out.is_symlink():
+        raise FileExistsError("Output PDF already exists. Choose a new filename.")
     writer = PdfWriter()
+    total_pages = 0
     for src in inputs:
         reader = PdfReader(str(src), strict=True)
         if reader.is_encrypted:
-            raise ValueError(f"Encrypted PDF cannot be merged by this MVP: {src.name}")
+            raise ValueError(f"Encrypted PDF cannot be merged: {src.name}")
+        if not reader.pages:
+            raise ValueError(f"PDF has no pages: {src.name}")
         for page in reader.pages:
             writer.add_page(page)
+            total_pages += 1
     strip_writer_metadata(writer)
     protect_writer(writer, password)
-    with out.open("wb") as fh:
-        writer.write(fh)
+    _publish_writer(writer, out, total_pages, password)
 
 
 class App:
