@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from tkinter import BOTH, END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Tk, filedialog, messagebox
+from tkinter import ttk
 
 from pypdf import PdfReader, PdfWriter
 
@@ -163,88 +164,142 @@ def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
 
 
 class App:
+    """One obvious workflow; advanced options stay hidden until needed."""
+
     def __init__(self, root: Tk):
         self.root = root
         self.root.title("PDF Privacy Toolkit — Windows")
-        self.root.geometry("900x620")
+        self.root.geometry("930x650")
         self.files: list[Path] = []
         self.pages = StringVar()
         self.password = StringVar()
+        self.action = StringVar(value="Remove metadata / select pages")
+        self.advanced_visible = False
 
         head = Frame(root, padx=12, pady=12)
         head.pack(fill="x")
         Label(head, text="PDF Privacy Toolkit", font=("Segoe UI", 20, "bold")).pack(anchor="w")
-        Label(head, text="Merge, split, reorder/delete pages, remove document/XMP metadata, and optionally AES-256-R5 password-protect PDFs locally.").pack(anchor="w")
+        Label(head, text="Merge, split or remove document metadata. PDF page content is NOT redacted.",
+              wraplength=840, justify=LEFT).pack(anchor="w")
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
-        Button(controls, text="Add PDFs", width=15, command=self.add_files).pack(side=LEFT)
-        Button(controls, text="Sanitize first", width=16, command=self.sanitize_first).pack(side=LEFT, padx=6)
-        Button(controls, text="Split first", width=14, command=self.split_first).pack(side=LEFT)
-        Button(controls, text="Merge all", width=14, command=self.merge_all).pack(side=LEFT, padx=6)
+        Button(controls, text="1  Add PDF files", width=18, command=self.add_files).pack(side=LEFT)
+        ttk.Combobox(
+            controls, state="readonly", width=30, textvariable=self.action,
+            values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
+        ).pack(side=LEFT, padx=8)
+        Button(controls, text="2  Export copy", width=17, command=self.run_action).pack(side=LEFT)
 
-        opts = Frame(root, padx=12, pady=10)
-        opts.pack(fill="x")
-        Label(opts, text="Pages to keep/order for Sanitize (example: 1,3-5,2; blank = all):").pack(anchor="w")
-        Entry(opts, textvariable=self.pages).pack(fill="x", pady=(2, 8))
-        Label(opts, text="Optional output password (AES-256-R5):").pack(anchor="w")
-        Entry(opts, textvariable=self.password, show="*").pack(fill="x")
+        Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
+        self.advanced = Frame(root, padx=12, pady=8)
+        Label(self.advanced, text="Pages to keep / order (example 1,3-5,2; blank = all):").pack(anchor="w")
+        Entry(self.advanced, textvariable=self.pages).pack(fill="x", pady=4)
+        Label(self.advanced, text="Optional output password (AES-256-R5; not used for split):").pack(anchor="w")
+        Entry(self.advanced, textvariable=self.password, show="*").pack(fill="x", pady=4)
 
+        Label(root, text="Input inspection (information only; embedded content is not fully checked):").pack(anchor="w", padx=12, pady=(10, 4))
         self.listbox = Listbox(root, font=("Consolas", 10))
-        self.listbox.pack(fill=BOTH, expand=True, padx=12, pady=12)
+        self.listbox.pack(fill=BOTH, expand=True, padx=12, pady=(0, 10))
+        Label(root, text="Important: metadata removal does not remove visible text, attachments, form fields or annotations.",
+              wraplength=850, justify=LEFT).pack(anchor="w", padx=12, pady=(0, 10))
+
+    def toggle_advanced(self):
+        self.advanced_visible = not self.advanced_visible
+        if self.advanced_visible:
+            self.advanced.pack(fill="x", before=self.listbox)
+        else:
+            self.advanced.pack_forget()
 
     def add_files(self):
         for p in filedialog.askopenfilenames(parent=self.root, title="Select PDFs", filetypes=[("PDF", "*.pdf")]):
             path = Path(p)
             if path not in self.files:
                 self.files.append(path)
+        self.inspect_files()
+
+    def inspect_files(self):
         self.listbox.delete(0, END)
         for p in self.files:
             try:
-                r = PdfReader(str(p), strict=True)
-                encrypted = "encrypted" if r.is_encrypted else "not encrypted"
-                info_meta = bool(r.metadata) if not r.is_encrypted else False
-                xmp_meta = bool(r.xmp_metadata) if not r.is_encrypted else False
-                self.listbox.insert(END, f"{p.name} | {len(r.pages) if not r.is_encrypted else '?'} pages | {encrypted} | info={info_meta} xmp={xmp_meta}")
+                reader = PdfReader(str(p), strict=True)
+                if reader.is_encrypted:
+                    self.listbox.insert(END, f"[BLOCK] {p.name} | encrypted; no processing")
+                    continue
+                meta = bool(reader.metadata or reader.xmp_metadata)
+                self.listbox.insert(
+                    END, f"[REVIEW] {p.name} | {len(reader.pages)} pages | metadata flag={meta}"
+                )
+                self.listbox.insert(
+                    END, "    Not inspected: embedded objects, attachments, image OCR, secrets"
+                )
             except Exception as exc:
-                self.listbox.insert(END, f"ERROR {p.name}: {exc}")
+                self.listbox.insert(END, f"[BLOCK] {p.name}: {exc}")
+
+    def run_action(self):
+        if not self.files:
+            return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
+        action = self.action.get()
+        if action == "Merge selected PDFs":
+            return self.merge_all()
+        if action == "Split first PDF":
+            return self.split_first()
+        return self.sanitize_first()
+
+    def confirm_limited_scope(self) -> bool:
+        return messagebox.askokcancel(
+            "Check limitations before exporting",
+            "Only PDF document-info / XMP metadata is targeted for removal.\n"
+            "Visible text, hidden objects, signatures, forms, annotations and attachments "
+            "are not securely redacted. Pages are not independently rendered.\n"
+            "Processing may change PDF structure and signatures. Verify the exported file.\nContinue?",
+        )
 
     def sanitize_first(self):
         if not self.files:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
-        out = filedialog.asksaveasfilename(parent=self.root, defaultextension=".pdf", initialfile=f"{self.files[0].stem}_clean.pdf", filetypes=[("PDF", "*.pdf")])
+        if not self.confirm_limited_scope():
+            return
+        out = filedialog.asksaveasfilename(
+            parent=self.root, defaultextension=".pdf",
+            initialfile=f"{self.files[0].stem}_metadata_removed.pdf", filetypes=[("PDF", "*.pdf")])
         if not out:
             return
         try:
             sanitize_pdf(self.files[0], Path(out), self.pages.get(), self.password.get())
-            messagebox.showinfo("PDF Privacy Toolkit", f"Saved: {out}")
+            messagebox.showinfo("PDF Privacy Toolkit", f"Created and verified metadata/page count: {out}\nReview content before sharing.")
         except Exception as exc:
             messagebox.showerror("PDF Privacy Toolkit", str(exc))
 
     def split_first(self):
         if not self.files:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
+        if not self.confirm_limited_scope():
+            return
         folder = filedialog.askdirectory(parent=self.root, title="Choose split output folder")
         if not folder:
             return
         try:
             count = split_pdf(self.files[0], Path(folder))
-            messagebox.showinfo("PDF Privacy Toolkit", f"Created {count} metadata-clean page PDFs.")
+            messagebox.showinfo("PDF Privacy Toolkit", f"Created and verified {count} one-page PDFs. Review content before sharing.")
         except Exception as exc:
             messagebox.showerror("PDF Privacy Toolkit", str(exc))
 
     def merge_all(self):
         if len(self.files) < 2:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add at least two PDFs to merge.")
-        out = filedialog.asksaveasfilename(parent=self.root, defaultextension=".pdf", initialfile="merged_clean.pdf", filetypes=[("PDF", "*.pdf")])
+        if not self.confirm_limited_scope():
+            return
+        out = filedialog.asksaveasfilename(
+            parent=self.root, defaultextension=".pdf",
+            initialfile="merged_metadata_removed.pdf", filetypes=[("PDF", "*.pdf")])
         if not out:
             return
         try:
             merge_pdfs(self.files, Path(out), self.password.get())
-            messagebox.showinfo("PDF Privacy Toolkit", f"Saved: {out}")
+            messagebox.showinfo("PDF Privacy Toolkit", f"Created and verified merged PDF: {out}\nReview content before sharing.")
         except Exception as exc:
             messagebox.showerror("PDF Privacy Toolkit", str(exc))
-
 
 def main():
     from i18n import install_bilingual_ui
