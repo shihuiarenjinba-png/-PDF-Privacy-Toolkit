@@ -171,7 +171,8 @@ def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
     total_pages = 0
     for src in inputs:
         check_pdf_input(src)
-    reader = PdfReader(str(src), strict=True)
+        reader = PdfReader(str(src), strict=True)
+        check_page_count(reader)
         if reader.is_encrypted:
             raise ValueError(f"Encrypted PDF cannot be merged: {src.name}")
         if not reader.pages:
