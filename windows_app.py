@@ -7,6 +7,24 @@ from tkinter import ttk
 from pypdf import PdfReader, PdfWriter
 
 
+MAX_INPUT_BYTES = 64 * 1024 * 1024
+MAX_INPUT_PAGES = 500
+MAX_MERGE_FILES = 20
+
+
+def check_pdf_input(path: Path) -> None:
+    if not path.is_file() or path.is_symlink():
+        raise ValueError('Input must be a regular PDF file, not a symbolic link.')
+    size = path.stat().st_size
+    if size == 0 or size > MAX_INPUT_BYTES:
+        raise ValueError('PDF input is empty or exceeds the 64 MiB limit.')
+
+
+def check_page_count(reader: PdfReader) -> None:
+    if not (1 <= len(reader.pages) <= MAX_INPUT_PAGES):
+        raise ValueError('PDF exceeds the verified 1–500 page range.')
+
+
 def ensure_distinct_path(src: Path, out: Path) -> None:
     try:
         same = src.resolve() == out.resolve()
@@ -106,20 +124,22 @@ def write_pdf(reader: PdfReader, pages: list[int], out: Path,
 def sanitize_pdf(src: Path, out: Path, page_spec: str = "", password: str = "") -> None:
     """Keep/reorder pages and remove *metadata*, not page text or secrets."""
     ensure_distinct_path(src, out)
+    check_pdf_input(src)
     reader = PdfReader(str(src), strict=True)
     if reader.is_encrypted:
         raise ValueError("Encrypted PDFs are not modified. Supply an authorized decrypted copy.")
+    check_page_count(reader)
     pages = parse_pages(page_spec, len(reader.pages))
     write_pdf(reader, pages, out, remove_metadata=True, password=password)
 
 
 def split_pdf(src: Path, output_dir: Path) -> int:
+    check_pdf_input(src)
     reader = PdfReader(str(src), strict=True)
     if reader.is_encrypted:
         raise ValueError("Encrypted PDFs are not modified.")
+    check_page_count(reader)
     count = len(reader.pages)
-    if count < 1:
-        raise ValueError("Input PDF has no pages.")
     if output_dir.is_symlink():
         raise ValueError("Output directory cannot be a symlink.")
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -141,8 +161,8 @@ def split_pdf(src: Path, output_dir: Path) -> int:
 
 
 def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
-    if len(inputs) < 2:
-        raise ValueError("Select at least two PDFs to merge.")
+    if len(inputs) < 2 or len(inputs) > MAX_MERGE_FILES:
+        raise ValueError("Select 2–20 PDFs to merge.")
     for src in inputs:
         ensure_distinct_path(src, out)
     if out.exists() or out.is_symlink():
@@ -150,7 +170,8 @@ def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
     writer = PdfWriter()
     total_pages = 0
     for src in inputs:
-        reader = PdfReader(str(src), strict=True)
+        check_pdf_input(src)
+    reader = PdfReader(str(src), strict=True)
         if reader.is_encrypted:
             raise ValueError(f"Encrypted PDF cannot be merged: {src.name}")
         if not reader.pages:
@@ -158,6 +179,8 @@ def merge_pdfs(inputs: list[Path], out: Path, password: str = "") -> None:
         for page in reader.pages:
             writer.add_page(page)
             total_pages += 1
+            if total_pages > MAX_INPUT_PAGES:
+                raise ValueError('Merged PDF exceeds the verified 500-page limit.')
     strip_writer_metadata(writer)
     protect_writer(writer, password)
     _publish_writer(writer, out, total_pages, password)
@@ -222,7 +245,9 @@ class App:
         self.listbox.delete(0, END)
         for p in self.files:
             try:
+                check_pdf_input(p)
                 reader = PdfReader(str(p), strict=True)
+                check_page_count(reader)
                 if reader.is_encrypted:
                     self.listbox.insert(END, f"[BLOCK] {p.name} | encrypted; no processing")
                     continue
