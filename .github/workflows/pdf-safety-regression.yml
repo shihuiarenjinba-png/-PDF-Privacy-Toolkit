@@ -1,7 +1,7 @@
 name: PDF safety and UI regression
 on:
   push:
-    branches: [improve/simple-pdf-safety-20261018]
+    branches: [improve/simple-pdf-safety-20261018, 'ui/safe-product-upgrade-20261019']
   workflow_dispatch:
 permissions:
   contents: read
