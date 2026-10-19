@@ -5,9 +5,9 @@ import json
 from pathlib import Path
 
 
-def review_pdf_inputs(files: list[Path], action: str, pages: str, password: str) -> tuple[str, str]:
+def review_pdf_inputs(files: list[Path], action: str, pages: str, password: str,
+                      *, check_pdf_input, check_page_count, parse_pages) -> tuple[str, str]:
     from pypdf import PdfReader
-    from windows_app import check_pdf_input, check_page_count, parse_pages
 
     if not files:
         raise ValueError("先にPDFを選択してください。")
