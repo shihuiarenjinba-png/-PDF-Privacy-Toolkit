@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from tkinter import BOTH, END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Tk, filedialog, messagebox
 from tkinter import ttk
+from pdf_export_review import review_pdf_inputs
 
 from pypdf import PdfReader, PdfWriter
 
@@ -199,6 +200,7 @@ class App:
         self.password = StringVar()
         self.action = StringVar(value="Remove metadata / select pages")
         self.advanced_visible = False
+        self.preview_revision: str | None = None
 
         head = Frame(root, padx=12, pady=12)
         head.pack(fill="x")
@@ -213,7 +215,10 @@ class App:
             controls, state="readonly", width=30, textvariable=self.action,
             values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
         ).pack(side=LEFT, padx=8)
-        Button(controls, text="2  Export copy", width=17, command=self.run_action).pack(side=LEFT)
+        Button(controls, text="2  Preview (no write)", width=23,
+               command=self.preview_action).pack(side=LEFT, padx=(0, 6))
+        Button(controls, text="3  Confirm export", width=19,
+               command=self.run_action).pack(side=LEFT)
 
         Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
         self.advanced = Frame(root, padx=12, pady=8)
@@ -222,6 +227,9 @@ class App:
         Label(self.advanced, text="Optional output password (AES-256-R5; not used for split):").pack(anchor="w")
         Entry(self.advanced, textvariable=self.password, show="*").pack(fill="x", pady=4)
 
+        self.preview_status = StringVar(value="プレビュー後に新しいPDFを保存できます。")
+        Label(root, textvariable=self.preview_status, wraplength=850,
+              justify=LEFT).pack(anchor="w", padx=12, pady=(6, 4))
         Label(root, text="Input inspection (information only; embedded content is not fully checked):").pack(anchor="w", padx=12, pady=(10, 4))
         self.listbox = Listbox(root, font=("Consolas", 10))
         self.listbox.pack(fill=BOTH, expand=True, padx=12, pady=(0, 10))
@@ -236,6 +244,7 @@ class App:
             self.advanced.pack_forget()
 
     def add_files(self):
+        self.preview_revision = None
         for p in filedialog.askopenfilenames(parent=self.root, title="Select PDFs", filetypes=[("PDF", "*.pdf")]):
             path = Path(p)
             if path not in self.files:
@@ -262,10 +271,33 @@ class App:
             except Exception as exc:
                 self.listbox.insert(END, f"[BLOCK] {p.name}: {exc}")
 
+    def preview_action(self):
+        try:
+            revision, detail = review_pdf_inputs(self.files, self.action.get(),
+                                                 self.pages.get(), self.password.get())
+            self.preview_revision = revision
+            self.preview_status.set(detail + " 内容を確認してから保存してください。")
+        except Exception as exc:
+            self.preview_revision = None
+            self.preview_status.set("プレビュー失敗。PDF・ページ指定・容量などを確認してください。")
+            messagebox.showwarning("Preview failed", str(exc))
+
     def run_action(self):
         if not self.files:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
+        try:
+            revision, _ = review_pdf_inputs(self.files, self.action.get(),
+                                             self.pages.get(), self.password.get())
+        except Exception as exc:
+            self.preview_revision = None
+            return messagebox.showerror("Preview required", str(exc))
+        if not self.preview_revision or self.preview_revision != revision:
+            self.preview_revision = None
+            return messagebox.showwarning("Preview required",
+                "Selected PDFs, operation or options changed. Preview the operation again.")
         action = self.action.get()
+        # An approval can authorize exactly one user-requested operation.
+        self.preview_revision = None
         if action == "Merge selected PDFs":
             return self.merge_all()
         if action == "Split first PDF":
