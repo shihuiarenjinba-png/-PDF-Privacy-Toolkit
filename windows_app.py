@@ -274,7 +274,10 @@ class App:
     def preview_action(self):
         try:
             revision, detail = review_pdf_inputs(self.files, self.action.get(),
-                                                 self.pages.get(), self.password.get())
+                                                 self.pages.get(), self.password.get(),
+                                                 check_pdf_input=check_pdf_input,
+                                                 check_page_count=check_page_count,
+                                                 parse_pages=parse_pages)
             self.preview_revision = revision
             self.preview_status.set(detail + " 内容を確認してから保存してください。")
         except Exception as exc:
@@ -287,7 +290,10 @@ class App:
             return messagebox.showinfo("PDF Privacy Toolkit", "Add a PDF first.")
         try:
             revision, _ = review_pdf_inputs(self.files, self.action.get(),
-                                             self.pages.get(), self.password.get())
+                                             self.pages.get(), self.password.get(),
+                                             check_pdf_input=check_pdf_input,
+                                             check_page_count=check_page_count,
+                                             parse_pages=parse_pages)
         except Exception as exc:
             self.preview_revision = None
             return messagebox.showerror("Preview required", str(exc))
