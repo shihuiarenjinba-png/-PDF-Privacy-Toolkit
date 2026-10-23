@@ -193,8 +193,9 @@ class App:
 
     def __init__(self, root: Tk):
         self.root = root
-        self.root.title("PDF Privacy Toolkit — Windows")
+        self.root.title("PDF Privacy — Windows")
         self.root.geometry("930x650")
+        self.root.minsize(820, 560)
         self.files: list[Path] = []
         self.pages = StringVar()
         self.password = StringVar()
@@ -204,7 +205,7 @@ class App:
 
         head = Frame(root, padx=12, pady=12)
         head.pack(fill="x")
-        Label(head, text="PDF Privacy Toolkit", font=("Segoe UI", 20, "bold")).pack(anchor="w")
+        Label(head, text="PDF Privacy", font=("Segoe UI", 20, "bold")).pack(anchor="w")
         Label(head, text="Merge, split or remove document metadata. PDF page content is NOT redacted.",
               wraplength=840, justify=LEFT).pack(anchor="w")
 
