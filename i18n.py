@@ -10,6 +10,7 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "Clear list": ("Clear list", "一覧をクリア"),
     "Preview the operation before saving a new PDF.": ("Preview the operation before saving a new PDF.", "プレビュー後に新しいPDFを保存できます。"),
     "Preview failed. Check the PDF, page selection and file size.": ("Preview failed. Check the PDF, page selection and file size.", "プレビュー失敗。PDF・ページ指定・容量などを確認してください。"),
     "Review the preview before saving.": ("Review the preview before saving.", "内容を確認してから保存してください。"),
