@@ -235,7 +235,6 @@ class App:
         Label(action_row, text="Preview shows the planned output before anything is saved.",
               fg="#56616f").pack(side=LEFT, padx=(12, 0))
 
-        Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
         self.advanced = Frame(root, padx=12, pady=8)
         Label(self.advanced, text="Pages to keep / order (example 1,3-5,2; blank = all):").pack(anchor="w")
         Entry(self.advanced, textvariable=self.pages).pack(fill="x", pady=4)
