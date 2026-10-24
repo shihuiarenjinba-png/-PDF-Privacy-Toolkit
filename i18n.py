@@ -10,6 +10,9 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "2  Action:": ("2  Action:", "2  処理:"),
+    "3  Preview (no write)": ("3  Preview (no write)", "3  プレビュー（書き込みなし）"),
+    "4  Save new PDF": ("4  Save new PDF", "4  新しいPDFを保存"),
     "① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF": ("① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF", "① PDFを追加  →  ② 処理を選択  →  ③ プレビュー  →  ④ 新しいPDFを保存"),
     "PDF Privacy Toolkit": ("PDF Privacy Toolkit", "PDFプライバシーツールキット"),
     "PDF Privacy Toolkit — Windows": ("PDF Privacy Toolkit — Windows", "PDFプライバシーツールキット — Windows"),
