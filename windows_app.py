@@ -5,6 +5,7 @@ from tkinter import BOTH, END, LEFT, Button, Entry, Frame, Label, Listbox, Strin
 from tkinter import ttk
 from pdf_export_review import review_pdf_inputs
 from i18n import translate
+from ui_desktop import bind_shortcuts, restore_window_state, save_window_state
 
 from pypdf import PdfReader, PdfWriter
 
@@ -197,6 +198,7 @@ class App:
         self.root.title("PDF Privacy — Windows")
         self.root.geometry("930x650")
         self.root.minsize(820, 560)
+        restore_window_state(self.root, "PDFPrivacy", min_width=820, min_height=560)
         self.files: list[Path] = []
         self.pages = StringVar()
         self.password = StringVar()
@@ -213,16 +215,22 @@ class App:
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
-        Button(controls, text="1  Add PDF files", width=18, command=self.add_files).pack(side=LEFT)
+        self.add_button = Button(controls, text="1  Add PDF files", width=18, command=self.add_files)
+        self.add_button.pack(side=LEFT)
         Label(controls, text="2  Action:").pack(side=LEFT, padx=(8, 2))
-        ttk.Combobox(
+        self.action_combo = ttk.Combobox(
             controls, state="readonly", width=24, textvariable=self.action,
             values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
-        ).pack(side=LEFT, padx=8)
-        Button(controls, text="3  Preview (no write)", width=23,
-               command=self.preview_action).pack(side=LEFT, padx=(0, 6))
-        Button(controls, text="4  Save new PDF", width=19,
-               command=self.run_action).pack(side=LEFT)
+        )
+        self.action_combo.pack(side=LEFT, padx=8)
+        self.preview_button = Button(controls, text="3  Preview (no write)", width=23,
+                                     command=self.preview_action)
+        self.preview_button.pack(side=LEFT, padx=(0, 6))
+        self.save_button = Button(controls, text="4  Save new PDF", width=19,
+                                  command=self.run_action)
+        self.save_button.pack(side=LEFT)
+        self.clear_button = Button(controls, text="Clear list", width=12, command=self.clear_files)
+        self.clear_button.pack(side=LEFT, padx=(8, 0))
 
         Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
         self.advanced = Frame(root, padx=12, pady=8)
@@ -239,6 +247,38 @@ class App:
         self.listbox.pack(fill=BOTH, expand=True, padx=12, pady=(0, 10))
         Label(root, text="Important: metadata removal does not remove visible text, attachments, form fields or annotations.",
               wraplength=850, justify=LEFT).pack(anchor="w", padx=12, pady=(0, 10))
+        for variable in (self.action, self.pages, self.password):
+            variable.trace_add("write", self._invalidate_preview)
+        bind_shortcuts(self.root, {
+            "<Control-O>": self.add_files,
+            "<Control-P>": self.preview_action,
+            "<Control-S>": self.run_action,
+            "<Control-Delete>": self.clear_files,
+        })
+        self.root.protocol("WM_DELETE_WINDOW", self._close)
+        self._refresh_actions()
+
+    def _invalidate_preview(self, *_args):
+        self.preview_revision = None
+        self._refresh_actions()
+
+    def _refresh_actions(self):
+        action = self.action.get()
+        ready = len(self.files) >= (2 if action == "Merge selected PDFs" else 1)
+        self.preview_button.configure(state="normal" if ready else "disabled")
+        self.save_button.configure(state="normal" if ready and self.preview_revision else "disabled")
+        self.clear_button.configure(state="normal" if self.files else "disabled")
+
+    def _close(self):
+        save_window_state(self.root, "PDFPrivacy")
+        self.root.destroy()
+
+    def clear_files(self):
+        self.files = []
+        self.preview_revision = None
+        self.listbox.delete(0, END)
+        self.preview_status.set(translate("Preview the operation before saving a new PDF."))
+        self._refresh_actions()
 
     def toggle_advanced(self):
         self.advanced_visible = not self.advanced_visible
@@ -254,6 +294,7 @@ class App:
             if path not in self.files:
                 self.files.append(path)
         self.inspect_files()
+        self._refresh_actions()
 
     def inspect_files(self):
         self.listbox.delete(0, END)
@@ -284,9 +325,11 @@ class App:
                                                  parse_pages=parse_pages)
             self.preview_revision = revision
             self.preview_status.set(translate(detail + " Review the preview before saving."))
+            self._refresh_actions()
         except Exception as exc:
             self.preview_revision = None
             self.preview_status.set(translate("Preview failed. Check the PDF, page selection and file size."))
+            self._refresh_actions()
             messagebox.showwarning("Preview failed", str(exc))
 
     def run_action(self):
@@ -308,6 +351,7 @@ class App:
         action = self.action.get()
         # An approval can authorize exactly one user-requested operation.
         self.preview_revision = None
+        self._refresh_actions()
         if action == "Merge selected PDFs":
             return self.merge_all()
         if action == "Split first PDF":
