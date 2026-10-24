@@ -116,10 +116,15 @@ class LanguageController:
     def __init__(self, root):
         self.root = root
         self.original_title = root.title()
+        existing = list(root.winfo_children())
         self._snapshot(root)
-        frame = tk.Frame(root, padx=12, pady=6)
-        frame.pack(fill="x")
-        self.button = tk.Button(frame, width=12, command=self.toggle)
+        frame = tk.Frame(root, padx=12, pady=5)
+        if existing:
+            frame.pack(fill="x", before=existing[0])
+        else:
+            frame.pack(fill="x")
+        tk.Label(frame, text="Language / 言語").pack(side="right", padx=(0, 8))
+        self.button = tk.Button(frame, width=10, command=self.toggle)
         self.button.pack(side="right")
         _CONTROLLERS.append(self)
         self.refresh()
