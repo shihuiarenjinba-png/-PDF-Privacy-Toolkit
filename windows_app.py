@@ -217,6 +217,7 @@ class App:
         controls.pack(fill="x")
         self.add_button = Button(controls, text="1  Add PDF files", width=18, command=self.add_files)
         self.add_button.pack(side=LEFT)
+        Label(controls, text="選ぶとページ数やメタデータを確認", fg="#666666").pack(side=LEFT, padx=(6, 10))
         Label(controls, text="2  Action:").pack(side=LEFT, padx=(8, 2))
         self.action_combo = ttk.Combobox(
             controls, state="readonly", width=24, textvariable=self.action,
@@ -226,9 +227,11 @@ class App:
         self.preview_button = Button(controls, text="3  Preview (no write)", width=23,
                                      command=self.preview_action)
         self.preview_button.pack(side=LEFT, padx=(0, 6))
+        Label(controls, text="まだ保存しません", fg="#666666").pack(side=LEFT, padx=(0, 8))
         self.save_button = Button(controls, text="4  Save new PDF", width=19,
                                   command=self.run_action)
         self.save_button.pack(side=LEFT)
+        Label(controls, text="元PDFを残して新しいPDFを保存", fg="#666666").pack(side=LEFT, padx=(6, 0))
         self.clear_button = Button(controls, text="Clear list", width=12, command=self.clear_files)
         self.clear_button.pack(side=LEFT, padx=(8, 0))
 
