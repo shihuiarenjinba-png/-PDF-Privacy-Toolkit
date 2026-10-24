@@ -10,6 +10,9 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "Preview the operation before saving a new PDF.": ("Preview the operation before saving a new PDF.", "プレビュー後に新しいPDFを保存できます。"),
+    "Preview failed. Check the PDF, page selection and file size.": ("Preview failed. Check the PDF, page selection and file size.", "プレビュー失敗。PDF・ページ指定・容量などを確認してください。"),
+    "Review the preview before saving.": ("Review the preview before saving.", "内容を確認してから保存してください。"),
     "2  Action:": ("2  Action:", "2  処理:"),
     "3  Preview (no write)": ("3  Preview (no write)", "3  プレビュー（書き込みなし）"),
     "4  Save new PDF": ("4  Save new PDF", "4  新しいPDFを保存"),
