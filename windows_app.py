@@ -4,6 +4,7 @@ from pathlib import Path
 from tkinter import BOTH, END, LEFT, Button, Entry, Frame, Label, Listbox, StringVar, Tk, filedialog, messagebox
 from tkinter import ttk
 from pdf_export_review import review_pdf_inputs
+from i18n import translate
 
 from pypdf import PdfReader, PdfWriter
 
@@ -230,7 +231,7 @@ class App:
         Label(self.advanced, text="Optional output password (AES-256-R5; not used for split):").pack(anchor="w")
         Entry(self.advanced, textvariable=self.password, show="*").pack(fill="x", pady=4)
 
-        self.preview_status = StringVar(value="プレビュー後に新しいPDFを保存できます。")
+        self.preview_status = StringVar(value=translate("Preview the operation before saving a new PDF."))
         Label(root, textvariable=self.preview_status, wraplength=850,
               justify=LEFT).pack(anchor="w", padx=12, pady=(6, 4))
         Label(root, text="Input inspection (information only; embedded content is not fully checked):").pack(anchor="w", padx=12, pady=(10, 4))
@@ -282,10 +283,10 @@ class App:
                                                  check_page_count=check_page_count,
                                                  parse_pages=parse_pages)
             self.preview_revision = revision
-            self.preview_status.set(detail + " 内容を確認してから保存してください。")
+            self.preview_status.set(translate(detail + " Review the preview before saving."))
         except Exception as exc:
             self.preview_revision = None
-            self.preview_status.set("プレビュー失敗。PDF・ページ指定・容量などを確認してください。")
+            self.preview_status.set(translate("Preview failed. Check the PDF, page selection and file size."))
             messagebox.showwarning("Preview failed", str(exc))
 
     def run_action(self):
