@@ -27,6 +27,9 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "Choose PDFs; page count and metadata status appear below.": ("Choose PDFs; page count and metadata status appear below.", "PDFを選ぶと、ページ数とメタデータ状態が下に表示されます。"),
+    "Shows what will happen. It does not save yet.": ("Shows what will happen. It does not save yet.", "何が起きるかを確認します。この段階では保存しません。"),
+    "Keeps the original and writes a separate output PDF.": ("Keeps the original and writes a separate output PDF.", "元PDFを残し、別の出力PDFを保存します。"),
     "Clear list": ("Clear list", "一覧をクリア"),
     "Preview the operation before saving a new PDF.": ("Preview the operation before saving a new PDF.", "プレビュー後に新しいPDFを保存できます。"),
     "Preview failed. Check the PDF, page selection and file size.": ("Preview failed. Check the PDF, page selection and file size.", "プレビュー失敗。PDF・ページ指定・容量などを確認してください。"),
