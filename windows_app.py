@@ -215,25 +215,36 @@ class App:
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
-        self.add_button = Button(controls, text="1  Add PDF files", width=18, command=self.add_files)
-        self.add_button.pack(side=LEFT)
-        Label(controls, text="選ぶとページ数やメタデータを確認", fg="#666666").pack(side=LEFT, padx=(6, 10))
-        Label(controls, text="2  Action:").pack(side=LEFT, padx=(8, 2))
+        add_card = Frame(controls, padx=6, pady=4)
+        add_card.pack(side=LEFT, fill="x", expand=True)
+        self.add_button = Button(add_card, text="1  Add PDF files", width=18, command=self.add_files)
+        self.add_button.pack(anchor="w")
+        Label(add_card, text="Choose PDFs; page count and metadata status appear below.", fg="#666666",
+              wraplength=220, justify=LEFT).pack(anchor="w", pady=(3, 0))
+        action_card = Frame(controls, padx=6, pady=4)
+        action_card.pack(side=LEFT, fill="x", expand=True)
+        Label(action_card, text="2  Action:").pack(anchor="w")
         self.action_combo = ttk.Combobox(
-            controls, state="readonly", width=24, textvariable=self.action,
+            action_card, state="readonly", width=24, textvariable=self.action,
             values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
         )
-        self.action_combo.pack(side=LEFT, padx=8)
-        self.preview_button = Button(controls, text="3  Preview (no write)", width=23,
+        self.action_combo.pack(anchor="w", pady=(3, 0))
+        preview_card = Frame(controls, padx=6, pady=4)
+        preview_card.pack(side=LEFT, fill="x", expand=True)
+        self.preview_button = Button(preview_card, text="3  Preview (no write)", width=23,
                                      command=self.preview_action)
-        self.preview_button.pack(side=LEFT, padx=(0, 6))
-        Label(controls, text="まだ保存しません", fg="#666666").pack(side=LEFT, padx=(0, 8))
-        self.save_button = Button(controls, text="4  Save new PDF", width=19,
+        self.preview_button.pack(anchor="w")
+        Label(preview_card, text="Shows what will happen. It does not save yet.", fg="#666666",
+              wraplength=210, justify=LEFT).pack(anchor="w", pady=(3, 0))
+        save_card = Frame(controls, padx=6, pady=4)
+        save_card.pack(side=LEFT, fill="x", expand=True)
+        self.save_button = Button(save_card, text="4  Save new PDF", width=19,
                                   command=self.run_action)
-        self.save_button.pack(side=LEFT)
-        Label(controls, text="元PDFを残して新しいPDFを保存", fg="#666666").pack(side=LEFT, padx=(6, 0))
-        self.clear_button = Button(controls, text="Clear list", width=12, command=self.clear_files)
-        self.clear_button.pack(side=LEFT, padx=(8, 0))
+        self.save_button.pack(anchor="w")
+        Label(save_card, text="Keeps the original and writes a separate output PDF.", fg="#666666",
+              wraplength=220, justify=LEFT).pack(anchor="w", pady=(3, 0))
+        self.clear_button = Button(root, text="Clear list", width=12, command=self.clear_files)
+        self.clear_button.pack(anchor="w", padx=18, pady=(2, 0))
 
         Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
         self.advanced = Frame(root, padx=12, pady=8)
