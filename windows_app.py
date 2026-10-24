@@ -208,6 +208,7 @@ class App:
         Label(head, text="PDF Privacy", font=("Segoe UI", 20, "bold")).pack(anchor="w")
         Label(head, text="Merge, split or remove document metadata. PDF page content is NOT redacted.",
               wraplength=840, justify=LEFT).pack(anchor="w")
+        Label(head, text="① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF", font=("Segoe UI", 10, "bold"), wraplength=860, justify=LEFT).pack(anchor="w", pady=(4, 0))
 
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
