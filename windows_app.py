@@ -6,6 +6,7 @@ from tkinter import ttk
 from pdf_export_review import review_pdf_inputs
 from i18n import translate
 from ui_desktop import bind_shortcuts, restore_window_state, save_window_state
+from ui_commandbar import CommandBar
 
 from pypdf import PdfReader, PdfWriter
 
@@ -213,38 +214,26 @@ class App:
               wraplength=840, justify=LEFT).pack(anchor="w")
         Label(head, text="① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF", font=("Segoe UI", 10, "bold"), wraplength=860, justify=LEFT).pack(anchor="w", pady=(4, 0))
 
-        controls = Frame(root, padx=12)
-        controls.pack(fill="x")
-        add_card = Frame(controls, padx=6, pady=4)
-        add_card.pack(side=LEFT, fill="x", expand=True)
-        self.add_button = Button(add_card, text="1  Add PDF files", width=18, command=self.add_files)
-        self.add_button.pack(anchor="w")
-        Label(add_card, text="Choose PDFs; page count and metadata status appear below.", fg="#666666",
-              wraplength=220, justify=LEFT).pack(anchor="w", pady=(3, 0))
-        action_card = Frame(controls, padx=6, pady=4)
-        action_card.pack(side=LEFT, fill="x", expand=True)
-        Label(action_card, text="2  Action:").pack(anchor="w")
+        self.command_bar = CommandBar(root)
+        self.command_bar.pack(fill="x", padx=12, pady=(0, 6))
+        self.add_button = self.command_bar.add_command("add", "＋", "Add PDFs", self.add_files, primary=True)
+        self.preview_button = self.command_bar.add_command("preview", "◉", "Preview", self.preview_action, enabled=False)
+        self.save_button = self.command_bar.add_command("save", "▣", "Save PDF", self.run_action, enabled=False)
+        self.clear_button = self.command_bar.add_command("clear", "✕", "Clear list", self.clear_files, enabled=False)
+        self.command_bar.add_separator()
+        self.command_bar.add_command("advanced", "⚙", "Advanced", self.toggle_advanced)
+        self.command_bar.add_spacer()
+
+        action_row = Frame(root, padx=18, pady=4)
+        action_row.pack(fill="x")
+        Label(action_row, text="Action:").pack(side=LEFT, padx=(0, 8))
         self.action_combo = ttk.Combobox(
-            action_card, state="readonly", width=24, textvariable=self.action,
+            action_row, state="readonly", width=32, textvariable=self.action,
             values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
         )
-        self.action_combo.pack(anchor="w", pady=(3, 0))
-        preview_card = Frame(controls, padx=6, pady=4)
-        preview_card.pack(side=LEFT, fill="x", expand=True)
-        self.preview_button = Button(preview_card, text="3  Preview (no write)", width=23,
-                                     command=self.preview_action)
-        self.preview_button.pack(anchor="w")
-        Label(preview_card, text="Shows what will happen. It does not save yet.", fg="#666666",
-              wraplength=210, justify=LEFT).pack(anchor="w", pady=(3, 0))
-        save_card = Frame(controls, padx=6, pady=4)
-        save_card.pack(side=LEFT, fill="x", expand=True)
-        self.save_button = Button(save_card, text="4  Save new PDF", width=19,
-                                  command=self.run_action)
-        self.save_button.pack(anchor="w")
-        Label(save_card, text="Keeps the original and writes a separate output PDF.", fg="#666666",
-              wraplength=220, justify=LEFT).pack(anchor="w", pady=(3, 0))
-        self.clear_button = Button(root, text="Clear list", width=12, command=self.clear_files)
-        self.clear_button.pack(anchor="w", padx=18, pady=(2, 0))
+        self.action_combo.pack(side=LEFT)
+        Label(action_row, text="Preview shows the planned output before anything is saved.",
+              fg="#56616f").pack(side=LEFT, padx=(12, 0))
 
         Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
         self.advanced = Frame(root, padx=12, pady=8)
