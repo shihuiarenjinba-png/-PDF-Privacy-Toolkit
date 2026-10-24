@@ -27,6 +27,7 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "Local processing — the original PDF is never overwritten.": ("Local processing — the original PDF is never overwritten.", "ローカル処理 — 元PDFは上書きしません。"),
     "Preview": ("Preview", "プレビュー"),
     "Save PDF": ("Save PDF", "PDFを保存"),
     "Advanced": ("Advanced", "詳細設定"),
