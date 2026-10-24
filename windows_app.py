@@ -213,13 +213,14 @@ class App:
         controls = Frame(root, padx=12)
         controls.pack(fill="x")
         Button(controls, text="1  Add PDF files", width=18, command=self.add_files).pack(side=LEFT)
+        Label(controls, text="2  Action:").pack(side=LEFT, padx=(8, 2))
         ttk.Combobox(
-            controls, state="readonly", width=30, textvariable=self.action,
+            controls, state="readonly", width=24, textvariable=self.action,
             values=("Remove metadata / select pages", "Split first PDF", "Merge selected PDFs"),
         ).pack(side=LEFT, padx=8)
-        Button(controls, text="2  Preview (no write)", width=23,
+        Button(controls, text="3  Preview (no write)", width=23,
                command=self.preview_action).pack(side=LEFT, padx=(0, 6))
-        Button(controls, text="3  Confirm export", width=19,
+        Button(controls, text="4  Save new PDF", width=19,
                command=self.run_action).pack(side=LEFT)
 
         Button(root, text="Advanced: page order / password", command=self.toggle_advanced).pack(anchor="w", padx=12, pady=(8, 2))
