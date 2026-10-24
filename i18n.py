@@ -10,6 +10,7 @@ _CONTROLLERS = []
 _PATCHED = False
 
 TEXTS = {
+    "① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF": ("① Add PDFs  →  ② Choose an action  →  ③ Preview  →  ④ Save a new PDF", "① PDFを追加  →  ② 処理を選択  →  ③ プレビュー  →  ④ 新しいPDFを保存"),
     "PDF Privacy Toolkit": ("PDF Privacy Toolkit", "PDFプライバシーツールキット"),
     "PDF Privacy Toolkit — Windows": ("PDF Privacy Toolkit — Windows", "PDFプライバシーツールキット — Windows"),
     "Merge, split or remove document metadata. PDF page content is NOT redacted.": ("Merge, split or remove document metadata. PDF page content is NOT redacted.", "PDFの結合・分割・文書メタデータ処理。本文の機密情報は削除されません。"),
